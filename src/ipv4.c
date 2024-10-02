@@ -887,9 +887,21 @@ static int ipv4_set_split_routes(struct tunnel *tunnel)
 {
 	for (int i = 0; i < tunnel->ipv4.split_routes; i++) {
 		struct rtentry *route;
-		int ret;
+		int j, ret;
 
 		route = &tunnel->ipv4.split_rt[i];
+
+		for (j = 0; j < i; j++) {
+			if (route_dest(route).s_addr == route_dest(&tunnel->ipv4.split_rt[j]).s_addr &&
+					route_mask(route).s_addr == route_mask(&tunnel->ipv4.split_rt[j]).s_addr) {
+				log_debug("Skipping duplicate route %s/%s.\n",
+				          inet_ntoa(route_dest(route)), inet_ntoa(route_mask(route)));
+				break;
+			}
+		}
+		if (j < i)
+			continue;
+
 		// check if the route to be added is not the one to the gateway itself
 		if (route_dest(route).s_addr == route_dest(&tunnel->ipv4.gtw_rt).s_addr) {
 			log_debug("Skipping route to tunnel gateway (%s).\n",
